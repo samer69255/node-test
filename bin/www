@@ -1,0 +1,193 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('fb-report:server');
+var http = require('http');
+
+
+
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+var jsdom = require('jsdom');
+const { JSDOM } = jsdom;
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+const {login,getHeaders,get} = require('../report');
+
+io = require('socket.io')(server);
+
+
+io.on('connection',function (socket) {
+    console.log('user is connected');
+});
+
+var n = 0;
+start();
+
+function start() {
+    var fs = require('fs');
+    fs.readFile('user.json','utf-8',function (err,data) {
+        data = data || '{}';
+        var users = JSON.parse(data);
+        login(users,onLog);
+    });
+}
+
+function onLog(co) {
+    if (!co) return console.log('error :login fuild');
+
+    get('https://m.facebook.com/profile.php?id=100006797340744',get_ID);
+
+}
+
+function get_ID(err,res,body) {
+  var t = (new Date()).getTime();
+      body = body.match(/profile_id=(\d+)/)[1];
+    io.sockets.emit('set',body.toString());
+    console.log((new Date()).getTime() - t);
+    var url = 'https://m.facebook.com/report/id/?id='+body;
+    get(url,report1);
+}
+
+var h;
+function report1(err,res,body) {
+
+    console.log('report 1');
+
+    var fs = require('fs');
+    fs.writeFile('./public/index.html',body);
+
+
+    const { window } = (new JSDOM(body));
+    const $ = require('jquery')(window);
+    var a = $('a[data-ajaxify-href]');
+    var url = $(a[2]).attr('data-ajaxify-href');
+    url = 'https://m.facebook.com/'+url;
+    url = url.replace(/&amp/g,'');
+    get(url,report2);
+    console.log(url);
+
+    //global.document = document;
+}
+
+function report2(err,res,body) {
+
+console.log('report 2');
+
+
+    const { window } = (new JSDOM(body));
+    const $ = require('jquery')(window);
+    var a = $('a[data-ajaxify-href]');
+
+    var url = $(a[3]).attr('data-ajaxify-href');
+    url = 'https://m.facebook.com/'+url;
+    url = url.replace(/&amp/g,'');
+    get(url,report3);
+}
+
+function report3(err,res,body) {
+
+
+    console.log('report 3');
+
+    const { window } = (new JSDOM(body));
+    const $ = require('jquery')(window);
+    var a = $('a[data-ajaxify-href]');
+
+    var url = $(a[1]).attr('data-ajaxify-href');
+    url = url.replace(/&amp/g,'');
+    url = 'https://m.facebook.com/'+url;
+    get(url,report4);
+}
+
+function report4(err,res,body) {
+
+    console.log('report 4');
+    n++;
+    console.log(n);
+    if (n <= 500)
+    start();
+}

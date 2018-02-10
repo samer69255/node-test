@@ -20,6 +20,7 @@ function login(ob,call) {
     if (ob.cookie)
     {
         Cookies = ob.cookie;
+        console.log('login finish');
         return call(ob.cookie);
     }
     var email = ob.email,
@@ -44,6 +45,7 @@ function login(ob,call) {
             }
             if (txt.indexOf('xs') == -1) txt = null;
             Cookies = txt;
+            console.log('login finish');
             call(txt);
         });
 }

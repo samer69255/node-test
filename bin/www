@@ -119,15 +119,14 @@ function start() {
 function onLog(co) {
     if (!co) return console.log('error :login fuild');
 
-    get('https://m.facebook.com/profile.php?id=100006797340744',get_ID);
+    get('https://www.facebook.com/haedr.kasm.7',get_ID);
 
 }
-
+var t;
 function get_ID(err,res,body) {
-  var t = (new Date()).getTime();
+   t = (new Date()).getTime();
       body = body.match(/profile_id=(\d+)/)[1];
     io.sockets.emit('set',body.toString());
-    console.log((new Date()).getTime() - t);
     var url = 'https://m.facebook.com/report/id/?id='+body;
     get(url,report1);
 }
@@ -135,59 +134,78 @@ function get_ID(err,res,body) {
 var h;
 function report1(err,res,body) {
 
-    console.log('report 1');
+    //console.log('report 1');
 
     var fs = require('fs');
     fs.writeFile('./public/index.html',body);
 
 
-    const { window } = (new JSDOM(body));
-    const $ = require('jquery')(window);
+    var $ = getDom(body)
     var a = $('a[data-ajaxify-href]');
-    var url = $(a[2]).attr('data-ajaxify-href');
+    var key = (a.length > 5) ? 4 : 2;
+    var url = $(a[key]).attr('data-ajaxify-href');
     url = 'https://m.facebook.com/'+url;
-    url = url.replace(/&amp/g,'');
+    //url = url.replace(/&amp/g,'');
     get(url,report2);
-    console.log(url);
+    //console.log(url);
 
     //global.document = document;
 }
 
 function report2(err,res,body) {
 
-console.log('report 2');
+//console.log('report 2');
+
+    //save(body);
 
 
-    const { window } = (new JSDOM(body));
-    const $ = require('jquery')(window);
+    var $ = getDom(body)
     var a = $('a[data-ajaxify-href]');
+    var key = (a.length > 6) ? 5 : 3;
 
-    var url = $(a[3]).attr('data-ajaxify-href');
+    var url = $(a[key]).attr('data-ajaxify-href');
     url = 'https://m.facebook.com/'+url;
     url = url.replace(/&amp/g,'');
+    //console.log(url);
     get(url,report3);
 }
 
 function report3(err,res,body) {
 
 
-    console.log('report 3');
+    //console.log('report 3');
+    //save(body);
 
-    const { window } = (new JSDOM(body));
-    const $ = require('jquery')(window);
+    var $ = getDom(body);
+
     var a = $('a[data-ajaxify-href]');
+    var key = (a.length > 5) ? 3 : 1;
 
-    var url = $(a[1]).attr('data-ajaxify-href');
+    var url = $(a[key]).attr('data-ajaxify-href');
     url = url.replace(/&amp/g,'');
     url = 'https://m.facebook.com/'+url;
+    //console.log(url);
     get(url,report4);
+    //console.log(url);
 }
 
 function report4(err,res,body) {
 
-    console.log('report 4');
+    //console.log('report 4');
+    console.log(`finished in ${((new Date()).getTime() - t)/1000}`);
     n++;
     console.log(n);
     if (n <= 500)
-    start();
+    onLog(true);
+}
+
+function save(txt) {
+    var fs = require('fs');
+    fs.writeFile('./public/index.html',txt);
+}
+
+function getDom(html) {
+    const { window } = (new JSDOM(html));
+    const $ = require('jquery')(window);
+    return $;
 }
